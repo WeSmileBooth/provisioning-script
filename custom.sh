@@ -9,7 +9,7 @@
 PYTHON_PACKAGES=(
     #"opencv-python==4.7.0.72"
     insightface==0.7.3
-    onnx>=1.14.0
+    onnx=1.14.0
 )
 
 NODES=(
