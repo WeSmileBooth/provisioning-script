@@ -11,7 +11,7 @@ PYTHON_PACKAGES=(
 )
 
 NODES=(
-    "https://github.com/Gourieff/comfyui-reactor-node"
+    "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
     "https://github.com/pythongosssss/ComfyUI-WD14-Tagger"
     "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Fannovel16/comfyui_controlnet_aux"
@@ -113,7 +113,7 @@ function provisioning_start() {
         "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
         "${IPADAPTER[@]}"
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
+        "${WORKSPACE}/storage/stable_diffusion/models/clip_vision" \
         "${CLIP_VISION[@]}"
     provisioning_print_end
 }
