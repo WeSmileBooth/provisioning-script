@@ -146,7 +146,6 @@ function provisioning_additional() {
     cd ${WORKSPACE}/storage/stable_diffusion/models/insightface/models || return
     wget https://huggingface.co/AIBrainBox/inswapper_128.onnx/resolve/main/inswapper_128.onnx
 }
-}
 
 function provisioning_get_clip_vision() {
     if [[ -z $2 ]]; then return 1; fi
