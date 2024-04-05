@@ -7,19 +7,20 @@
 # Packages are installed after nodes so we can fix them...
 
 PYTHON_PACKAGES=(
-    #"opencv-python==4.7.0.72"
-    insightface==0.7.3
-    onnx=1.14.0
+    "opencv-python==4.7.0.72"
+    "insightface==0.7.3"
+    "onnx>=1.14.0"
+    "onnxruntime-gpu==1.16.11"
+    "numpy"
 )
 
 NODES=(
-    "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
     "https://github.com/ltdrdata/ComfyUI-Manager"
+    "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
 )
 
 CHECKPOINT_MODELS=(
     # Juggernaut XL 
-    "https://civitai.com/api/download/models/357609?type=Model&format=SafeTensor&size=full&fp=fp16"
     "https://huggingface.co/Yabo/SDXL_LoRA/resolve/main/dreamshaperXL_alpha2Xl10.safetensors"
 )
 
@@ -43,34 +44,10 @@ IPADAPTER=(
     "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-portrait_sdxl.bin"
 )
 
-
 ESRGAN_MODELS=(
     "https://huggingface.co/ai-forever/Real-ESRGAN/resolve/main/RealESRGAN_x4.pth"
-    #"https://huggingface.co/FacehugmanIII/4x_foolhardy_Remacri/resolve/main/4x_foolhardy_Remacri.pth"
-    #"https://huggingface.co/Akumetsu971/SD_Anime_Futuristic_Armor/resolve/main/4x_NMKD-Siax_200k.pth"
 )
 
-CONTROLNET_MODELS=(
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_canny-fp16.safetensors"
-    #"https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-depth-rank256.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_depth-fp16.safetensors"
-    #"https://huggingface.co/kohya-ss/ControlNet-diff-modules/resolve/main/diff_control_sd15_depth_fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_hed-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_mlsd-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_normal-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_openpose-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_scribble-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_seg-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_canny-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_color-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_depth-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_keypose-fp16.safetensors"
-    #"https://huggingface.co/thibaud/controlnet-openpose-sdxl-1.0/resolve/main/control-lora-openposeXL2-rank256.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_openpose-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_seg-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_sketch-fp16.safetensors"
-    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_style-fp16.safetensors"
-)
 
 ### DO NOT EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU ARE DOING ###
 
@@ -100,9 +77,35 @@ function provisioning_start() {
         "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
         "${IPADAPTER[@]}"
     provisioning_get_clip_vision
-    provisioning_additional
     provisioning_print_end
 }
+
+function provisioning_get_clip_vision() {
+    dir="$1"
+    mkdir -p "$dir"
+    shift
+    if [[ $DISK_GB_ALLOCATED -ge $DISK_GB_REQUIRED ]]; then
+        arr=("$@")
+    else
+        printf "WARNING: Low disk space allocation - Only the first model will be downloaded!\n"
+        arr=("$1")
+    fi
+
+    model_file=${dir}/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors
+    model_url=https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors
+    if [[ ! -e ${model_file} ]]; then
+        printf "CLIP-ViT-H-14-laion2B-s32B-b79K...\n"
+        wget -q --show-progress -e dotbytes="${3:-4M}" -O "${model_file}" "${model_url}"
+    fi
+
+    model_xl_file=${dir}/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors
+    model_xl_url=https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/model.safetensors
+    if [[ ! -e ${model_xl_file} ]]; then
+        printf "CLIP-ViT-bigG-14-laion2B-39B-b160k...\n"
+        wget -q --show-progress -e dotbytes="${3:-4M}" -O "${model_xl_file}" "${model_xl_url}"
+    fi
+}
+
 
 function provisioning_get_nodes() {
     for repo in "${NODES[@]}"; do
@@ -136,34 +139,6 @@ function provisioning_install_python_packages() {
     if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
         micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
     fi
-}
-
-function provisioning_additional() {
-    mkdir -p ${WORKSPACE}/storage/stable_diffusion/models/insightface/models/buffalo_l
-    cd ${WORKSPACE}/storage/stable_diffusion/models/insightface/models/buffalo_l || return
-    wget https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip
-    unzip buffalo_l.zip
-    cd ${WORKSPACE}/storage/stable_diffusion/models/insightface/models || return
-    wget https://huggingface.co/AIBrainBox/inswapper_128.onnx/resolve/main/inswapper_128.onnx
-}
-
-function provisioning_get_clip_vision() {
-    if [[ -z $2 ]]; then return 1; fi
-    dir="$1"
-    mkdir -p "$dir"
-    shift
-    if [[ $DISK_GB_ALLOCATED -ge $DISK_GB_REQUIRED ]]; then
-        arr=("$@")
-    else
-        printf "WARNING: Low disk space allocation - Only the first model will be downloaded!\n"
-        arr=("$1")
-    fi
-    
-    wget -qnc --content-disposition --show-progress -e dotbytes="${3:-4M}" -P "https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors" "$dir"
-    mv "$dir/model.safetensors" "$dirCLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
-
-    wget -qnc --content-disposition --show-progress -e dotbytes="${3:-4M}" -P "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/model.safetensors" "$dir"
-    mv "$dir/model.safetensors" "$dir/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
 }
 
 
