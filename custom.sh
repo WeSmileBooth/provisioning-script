@@ -8,13 +8,13 @@
 
 PYTHON_PACKAGES=(
     #"opencv-python==4.7.0.72"
+    insightface==0.7.3
+    onnx>=1.14.0
 )
 
 NODES=(
     "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
-    "https://github.com/pythongosssss/ComfyUI-WD14-Tagger"
     "https://github.com/ltdrdata/ComfyUI-Manager"
-    "https://github.com/Fannovel16/comfyui_controlnet_aux"
 )
 
 CHECKPOINT_MODELS=(
@@ -24,14 +24,6 @@ CHECKPOINT_MODELS=(
 )
 
 LORA_MODELS=(
-    "https://civitai.com/api/download/models/317820?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/154149?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/177248?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/142778"
-    "https://civitai.com/api/download/models/133465?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/210686?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/80755?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/153787?type=Model&format=SafeTensor"
     "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid_sdxl_lora.safetensors"
     "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl_lora.safetensors"
 )
@@ -40,11 +32,6 @@ VAE_MODELS=(
     "https://huggingface.co/stabilityai/sd-vae-ft-ema-original/resolve/main/vae-ft-ema-560000-ema-pruned.safetensors"
     "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors"
     "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors"
-)
-
-CLIP_VISION=(
-    "https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors"
-    "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/model.safetensors"
 )
 
 IPADAPTER=(
@@ -65,21 +52,21 @@ ESRGAN_MODELS=(
 
 CONTROLNET_MODELS=(
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_canny-fp16.safetensors"
-    "https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-depth-rank256.safetensors"
-    "https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_depth-fp16.safetensors"
+    #"https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-depth-rank256.safetensors"
+    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_depth-fp16.safetensors"
     #"https://huggingface.co/kohya-ss/ControlNet-diff-modules/resolve/main/diff_control_sd15_depth_fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_hed-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_mlsd-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_normal-fp16.safetensors"
-    "https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_openpose-fp16.safetensors"
+    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_openpose-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_scribble-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_seg-fp16.safetensors"
-    "https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_canny-fp16.safetensors"
+    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_canny-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_color-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_depth-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_keypose-fp16.safetensors"
-    "https://huggingface.co/thibaud/controlnet-openpose-sdxl-1.0/resolve/main/control-lora-openposeXL2-rank256.safetensors"
-    "https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_openpose-fp16.safetensors"
+    #"https://huggingface.co/thibaud/controlnet-openpose-sdxl-1.0/resolve/main/control-lora-openposeXL2-rank256.safetensors"
+    #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_openpose-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_seg-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_sketch-fp16.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/t2iadapter_style-fp16.safetensors"
@@ -112,9 +99,8 @@ function provisioning_start() {
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
         "${IPADAPTER[@]}"
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/clip_vision" \
-        "${CLIP_VISION[@]}"
+    provisioning_get_clip_vision
+    provisioning_additional
     provisioning_print_end
 }
 
@@ -151,6 +137,36 @@ function provisioning_install_python_packages() {
         micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
     fi
 }
+
+function provisioning_additional() {
+    mkdir -p ${WORKSPACE}/storage/stable_diffusion/models/insightface/models/buffalo_l
+    cd ${WORKSPACE}/storage/stable_diffusion/models/insightface/models/buffalo_l || return
+    wget https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip
+    unzip buffalo_l.zip
+    cd ${WORKSPACE}/storage/stable_diffusion/models/insightface/models || return
+    wget https://huggingface.co/AIBrainBox/inswapper_128.onnx/resolve/main/inswapper_128.onnx
+}
+}
+
+function provisioning_get_clip_vision() {
+    if [[ -z $2 ]]; then return 1; fi
+    dir="$1"
+    mkdir -p "$dir"
+    shift
+    if [[ $DISK_GB_ALLOCATED -ge $DISK_GB_REQUIRED ]]; then
+        arr=("$@")
+    else
+        printf "WARNING: Low disk space allocation - Only the first model will be downloaded!\n"
+        arr=("$1")
+    fi
+    
+    wget -qnc --content-disposition --show-progress -e dotbytes="${3:-4M}" -P "https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors" "$dir"
+    mv "$dir/model.safetensors" "$dirCLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+
+    wget -qnc --content-disposition --show-progress -e dotbytes="${3:-4M}" -P "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/model.safetensors" "$dir"
+    mv "$dir/model.safetensors" "$dir/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
+}
+
 
 function provisioning_get_models() {
     if [[ -z $2 ]]; then return 1; fi
