@@ -10,7 +10,7 @@ PYTHON_PACKAGES=(
     "opencv-python==4.7.0.72"
     "insightface==0.7.3"
     "onnx>=1.14.0"
-    "onnxruntime-gpu==1.16.11"
+    "onnxruntime-gpu==1.16.1"
     "numpy"
 )
 
@@ -76,7 +76,7 @@ function provisioning_start() {
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
         "${IPADAPTER[@]}"
-    provisioning_get_clip_vision
+    provisioning_get_clip_vision "${WORKSPACE}/storage/stable_diffusion/models/clip_vision"
     provisioning_print_end
 }
 
