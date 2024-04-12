@@ -16,6 +16,9 @@ PYTHON_PACKAGES=(
 
 NODES=(
     "https://github.com/ltdrdata/ComfyUI-Manager"
+    "https://github.com/Fannovel16/comfyui_controlnet_aux"
+    "https://github.com/jags111/efficiency-nodes-comfyui"
+    "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes"
     "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
 )
 
@@ -73,12 +76,13 @@ function provisioning_start() {
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/esrgan" \
         "${ESRGAN_MODELS[@]}"
-    provisioning_get_models \
+     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
         "${IPADAPTER[@]}"
     provisioning_get_clip_vision "${WORKSPACE}/storage/stable_diffusion/models/clip_vision"
     provisioning_print_end
 }
+
 
 function provisioning_get_clip_vision() {
     dir="$1"
@@ -106,7 +110,6 @@ function provisioning_get_clip_vision() {
     fi
 }
 
-
 function provisioning_get_nodes() {
     for repo in "${NODES[@]}"; do
         dir="${repo##*/}"
@@ -123,6 +126,12 @@ function provisioning_get_nodes() {
         else
             printf "Downloading node: %s...\n" "${repo}"
             git clone "${repo}" "${path}" --recursive
+            
+            if [["${dir}" == "ComfyUI_IPAdapter_plus"]] then 
+            cd "$path"
+                git checkout 1f38315efc3d236689f7cada5ed5ce1539db6773
+            fi
+
             if [[ -e $requirements ]]; then
                 micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
             fi
@@ -131,6 +140,8 @@ function provisioning_get_nodes() {
                 printf "Running install.py for node: %s...\n" "${repo}"
                 ( cd "$path" && micromamba -n comfyui run python install.py )
             fi
+
+            
         fi
     done
 }
