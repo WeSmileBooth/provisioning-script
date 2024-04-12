@@ -15,12 +15,11 @@ PYTHON_PACKAGES=(
 )
 
 NODES=(
-    "https://github.com/Gourieff/comfyui-reactor-node"
-    "https://github.com/pythongosssss/ComfyUI-WD14-Tagger"
     "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Fannovel16/comfyui_controlnet_aux"
-    "https://github.com/LucianoCirino/efficiency-nodes-comfyui"
+    "https://github.com/jags111/efficiency-nodes-comfyui"
     "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes"
+    "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
 )
 
 CHECKPOINT_MODELS=(
@@ -165,6 +164,12 @@ function provisioning_get_nodes() {
         else
             printf "Downloading node: %s...\n" "${repo}"
             git clone "${repo}" "${path}" --recursive
+            
+            if [["${dir}" == "ComfyUI_IPAdapter_plus"]] then 
+            cd "$path"
+                git checkout 1f38315efc3d236689f7cada5ed5ce1539db6773
+            fi
+
             if [[ -e $requirements ]]; then
                 micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
             fi
@@ -173,6 +178,8 @@ function provisioning_get_nodes() {
                 printf "Running install.py for node: %s...\n" "${repo}"
                 ( cd "$path" && micromamba -n comfyui run python install.py )
             fi
+
+            
         fi
     done
 }
