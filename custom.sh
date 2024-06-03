@@ -7,35 +7,51 @@
 # Packages are installed after nodes so we can fix them...
 
 PYTHON_PACKAGES=(
-    #"opencv-python==4.7.0.72"
+    "opencv-python==4.7.0.72"
+    "insightface==0.7.3"
+    "onnx>=1.14.0"
+    "onnxruntime-gpu==1.16.1"
+    "numpy"
 )
 
 NODES=(
-    "https://github.com/Gourieff/comfyui-reactor-node"
-    "https://github.com/pythongosssss/ComfyUI-WD14-Tagger"
     "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Fannovel16/comfyui_controlnet_aux"
+    "https://github.com/jags111/efficiency-nodes-comfyui"
+    "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes"
+    "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
+    "https://github.com/cubiq/ComfyUI_InstantID"
+    "https://github.com/Gourieff/comfyui-reactor-node"
 )
 
 CHECKPOINT_MODELS=(
     "https://huggingface.co/Yabo/SDXL_LoRA/resolve/main/dreamshaperXL_alpha2Xl10.safetensors"
-    #"https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.ckpt"
-    #"https://huggingface.co/stabilityai/stable-diffusion-2-1/resolve/main/v2-1_768-ema-pruned.ckpt"
-    #"https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
-    #"https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner_1.0.safetensors"
 )
 
 LORA_MODELS=(
-    "https://civitai.com/api/download/models/317820?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/154149?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/177248?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/142778"
-    "https://civitai.com/api/download/models/133465?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/210686?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/80755?type=Model&format=SafeTensor"
-    "https://civitai.com/api/download/models/153787?type=Model&format=SafeTensor"
-    
+    "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid_sdxl_lora.safetensors"
+    "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl_lora.safetensors"
+)
 
+IPADAPTER=(
+    "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter_sdxl_vit-h.safetensors"
+    "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors"
+    "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors"
+    "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid_sdxl.bin"
+    "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl.bin"
+    "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-portrait_sdxl.bin"
+)
+
+INSTANTID=(
+    "https://huggingface.co/MonsterMMORPG/tools/resolve/main/1k3d68.onnx"
+    "https://huggingface.co/MonsterMMORPG/tools/resolve/main/2d106det.onnx"
+    "https://huggingface.co/MonsterMMORPG/tools/resolve/main/genderage.onnx"
+    "https://huggingface.co/MonsterMMORPG/tools/resolve/main/glintr100.onnx"
+    "https://huggingface.co/MonsterMMORPG/tools/resolve/main/scrfd_10g_bnkps.onnx"
+)
+
+INSTANTID_MODEL=(
+    "https://huggingface.co/InstantX/InstantID/resolve/main/ip-adapter.bin"
 )
 
 VAE_MODELS=(
@@ -46,11 +62,10 @@ VAE_MODELS=(
 
 ESRGAN_MODELS=(
     "https://huggingface.co/ai-forever/Real-ESRGAN/resolve/main/RealESRGAN_x4.pth"
-    #"https://huggingface.co/FacehugmanIII/4x_foolhardy_Remacri/resolve/main/4x_foolhardy_Remacri.pth"
-    #"https://huggingface.co/Akumetsu971/SD_Anime_Futuristic_Armor/resolve/main/4x_NMKD-Siax_200k.pth"
 )
 
 CONTROLNET_MODELS=(
+    "https://huggingface.co/InstantX/InstantID/resolve/main/ControlNetModel/diffusion_pytorch_model.safetensors"
     #"https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_canny-fp16.safetensors"
     "https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-depth-rank256.safetensors"
     "https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_depth-fp16.safetensors"
@@ -96,7 +111,44 @@ function provisioning_start() {
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/esrgan" \
         "${ESRGAN_MODELS[@]}"
+     provisioning_get_models \
+        "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
+        "${IPADAPTER[@]}"
+    provisioning_get_models \
+        "${WORKSPACE}/storage/stable_diffusion/models/insightface/models/antelopev2" \
+        "${INSTANTID[@]}"
+    provisioning_get_models \
+        "${WORKSPACE}/storage/stable_diffusion/models/instantid" \
+        "${INSTANTID_MODEL[@]}"
+    provisioning_get_clip_vision "${WORKSPACE}/storage/stable_diffusion/models/clip_vision"
     provisioning_print_end
+}
+
+
+function provisioning_get_clip_vision() {
+    dir="$1"
+    mkdir -p "$dir"
+    shift
+    if [[ $DISK_GB_ALLOCATED -ge $DISK_GB_REQUIRED ]]; then
+        arr=("$@")
+    else
+        printf "WARNING: Low disk space allocation - Only the first model will be downloaded!\n"
+        arr=("$1")
+    fi
+
+    model_file=${dir}/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors
+    model_url=https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors
+    if [[ ! -e ${model_file} ]]; then
+        printf "CLIP-ViT-H-14-laion2B-s32B-b79K...\n"
+        wget -q --show-progress -e dotbytes="${3:-4M}" -O "${model_file}" "${model_url}"
+    fi
+
+    model_xl_file=${dir}/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors
+    model_xl_url=https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/model.safetensors
+    if [[ ! -e ${model_xl_file} ]]; then
+        printf "CLIP-ViT-bigG-14-laion2B-39B-b160k...\n"
+        wget -q --show-progress -e dotbytes="${3:-4M}" -O "${model_xl_file}" "${model_xl_url}"
+    fi
 }
 
 function provisioning_get_nodes() {
@@ -115,6 +167,7 @@ function provisioning_get_nodes() {
         else
             printf "Downloading node: %s...\n" "${repo}"
             git clone "${repo}" "${path}" --recursive
+            
             if [[ -e $requirements ]]; then
                 micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
             fi
@@ -123,6 +176,8 @@ function provisioning_get_nodes() {
                 printf "Running install.py for node: %s...\n" "${repo}"
                 ( cd "$path" && micromamba -n comfyui run python install.py )
             fi
+
+            
         fi
     done
 }
