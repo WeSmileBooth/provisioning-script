@@ -1,4 +1,4 @@
-#!/bin/false
+#!/bin/bash
 
 # This script will provision a new server with all of the comfyui nodes and models you need
 
