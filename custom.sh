@@ -25,7 +25,9 @@ NODES=(
 )
 
 CHECKPOINT_MODELS=(
+    "https://huggingface.co/frankjoshua/zavychromaxl_v40/resolve/main/zavychromaxl_v40.safetensors?download=true"
     "https://huggingface.co/Yabo/SDXL_LoRA/resolve/main/dreamshaperXL_alpha2Xl10.safetensors"
+    "https://huggingface.co/misri/realismEngineSDXL_v30VAE/resolve/main/realismEngineSDXL_v30VAE.safetensors?download=true"
 )
 
 LORA_MODELS=(
@@ -40,6 +42,7 @@ IPADAPTER=(
     "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid_sdxl.bin"
     "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl.bin"
     "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-portrait_sdxl.bin"
+    "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter_sdxl.safetensors"
 )
 
 INSTANTID=(
