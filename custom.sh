@@ -12,6 +12,11 @@ PYTHON_PACKAGES=(
     "onnx>=1.14.0"
     "onnxruntime-gpu==1.16.1"
     "numpy"
+    "tqdm"  # Added for progress bars
+    "gfpgan"  # Added for face restoration
+    "scipy"  # Added for ReActor
+    "torch"  # Added for ReActor
+    "torchvision"  # Added for ReActor
 )
 
 NODES=(
@@ -159,12 +164,19 @@ function provisioning_get_nodes() {
         dir="${repo##*/}"
         path="/opt/ComfyUI/custom_nodes/${dir}"
         requirements="${path}/requirements.txt"
+        
         if [[ -d $path ]]; then
             if [[ ${AUTO_UPDATE,,} != "false" ]]; then
                 printf "Updating node: %s...\n" "${repo}"
                 ( cd "$path" && git pull )
                 if [[ -e $requirements ]]; then
                     micromamba -n comfyui run ${PIP_INSTALL} -r "$requirements"
+                fi
+                
+                # Special handling for ReActor node updates
+                if [[ "${dir}" == "comfyui-reactor-node" ]]; then
+                    printf "Updating ReActor dependencies...\n"
+                    ( cd "$path" && micromamba -n comfyui run python install.py --no_download_models )
                 fi
             fi
         else
@@ -175,15 +187,24 @@ function provisioning_get_nodes() {
                 micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
             fi
             
-            if [[ "${dir}" == "comfyui-reactor-node" && -f "${path}/install.py" ]]; then
-                printf "Running install.py for node: %s...\n" "${repo}"
-                ( cd "$path" && micromamba -n comfyui run python install.py )
+            # Special handling for ReActor node installation
+            if [[ "${dir}" == "comfyui-reactor-node" ]]; then
+                printf "Installing ReActor dependencies...\n"
+                ( cd "$path" && micromamba -n comfyui run python install.py --no_download_models )
+                
+                # Create models directory if it doesn't exist
+                mkdir -p "${path}/models"
+                
+                # Download required model files if they don't exist
+                if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
+                    printf "Downloading ReActor face swap model...\n"
+                    wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
+                fi
             fi
-
-            
         fi
     done
 }
+
 
 function provisioning_install_python_packages() {
     if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
