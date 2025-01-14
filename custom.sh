@@ -12,11 +12,13 @@ PYTHON_PACKAGES=(
     "onnx>=1.14.0"
     "onnxruntime-gpu==1.16.1"
     "numpy"
-    "tqdm"  # Added for progress bars
-    "gfpgan"  # Added for face restoration
-    "scipy"  # Added for ReActor
-    "torch"  # Added for ReActor
-    "torchvision"  # Added for ReActor
+    "tqdm"
+    "gfpgan"
+    "scipy"
+    "torch"
+    "torchvision"
+    "toml"
+    "matplotlib"
 )
 
 NODES=(
@@ -208,27 +210,54 @@ function provisioning_get_nodes() {
 
 function provisioning_install_python_packages() {
     if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
-        micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
+        # Try using pip directly if micromamba is not available
+        if ! command -v micromamba &> /dev/null; then
+            echo "micromamba not found, using pip directly..."
+            /opt/environments/python/comfyui/bin/pip install ${PYTHON_PACKAGES[*]}
+        else
+            micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
+        fi
     fi
 }
 
-function provisioning_get_models() {
-    if [[ -z $2 ]]; then return 1; fi
-    dir="$1"
-    mkdir -p "$dir"
-    shift
-    if [[ $DISK_GB_ALLOCATED -ge $DISK_GB_REQUIRED ]]; then
-        arr=("$@")
-    else
-        printf "WARNING: Low disk space allocation - Only the first model will be downloaded!\n"
-        arr=("$1")
-    fi
-    
-    printf "Downloading %s model(s) to %s...\n" "${#arr[@]}" "$dir"
-    for url in "${arr[@]}"; do
-        printf "Downloading: %s\n" "${url}"
-        provisioning_download "${url}" "${dir}"
-        printf "\n"
+function provisioning_get_nodes() {
+    for repo in "${NODES[@]}"; do
+        dir="${repo##*/}"
+        path="/opt/ComfyUI/custom_nodes/${dir}"
+        requirements="${path}/requirements.txt"
+        
+        if [[ -d $path ]]; then
+            if [[ ${AUTO_UPDATE,,} != "false" ]]; then
+                printf "Updating node: %s...\n" "${repo}"
+                ( cd "$path" && git pull )
+                if [[ -e $requirements ]]; then
+                    /opt/environments/python/comfyui/bin/pip install -r "$requirements"
+                fi
+            fi
+        else
+            printf "Downloading node: %s...\n" "${repo}"
+            git clone "${repo}" "${path}" --recursive
+            
+            if [[ -e $requirements ]]; then
+                /opt/environments/python/comfyui/bin/pip install -r "${requirements}"
+            fi
+            
+            # Special handling for ReActor node
+            if [[ "${dir}" == "comfyui-reactor-node" ]]; then
+                printf "Installing ReActor dependencies...\n"
+                ( cd "$path" && /opt/environments/python/comfyui/bin/python install.py )
+                
+                # Create models directory if it doesn't exist
+                mkdir -p "${path}/models"
+                
+                # Download required model files if they don't exist
+                if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
+                    printf "Downloading ReActor face swap model...\n"
+                    wget -q --show-progress -O "${path}/models/inswapper_128.onnx" \
+                    "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
+                fi
+            fi
+        fi
     done
 }
 
