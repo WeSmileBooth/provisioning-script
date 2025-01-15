@@ -161,6 +161,20 @@ function provisioning_get_clip_vision() {
     fi
 }
 
+
+
+function provisioning_install_python_packages() {
+    if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
+        # Try using pip directly if micromamba is not available
+        if ! command -v micromamba &> /dev/null; then
+            echo "micromamba not found, using pip directly..."
+            /opt/environments/python/comfyui/bin/pip install ${PYTHON_PACKAGES[*]}
+        else
+            micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
+        fi
+    fi
+}
+
 function provisioning_get_nodes() {
     for repo in "${NODES[@]}"; do
         dir="${repo##*/}"
@@ -201,60 +215,6 @@ function provisioning_get_nodes() {
                 if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
                     printf "Downloading ReActor face swap model...\n"
                     wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
-                fi
-            fi
-        fi
-    done
-}
-
-
-function provisioning_install_python_packages() {
-    if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
-        # Try using pip directly if micromamba is not available
-        if ! command -v micromamba &> /dev/null; then
-            echo "micromamba not found, using pip directly..."
-            /opt/environments/python/comfyui/bin/pip install ${PYTHON_PACKAGES[*]}
-        else
-            micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
-        fi
-    fi
-}
-
-function provisioning_get_nodes() {
-    for repo in "${NODES[@]}"; do
-        dir="${repo##*/}"
-        path="/opt/ComfyUI/custom_nodes/${dir}"
-        requirements="${path}/requirements.txt"
-        
-        if [[ -d $path ]]; then
-            if [[ ${AUTO_UPDATE,,} != "false" ]]; then
-                printf "Updating node: %s...\n" "${repo}"
-                ( cd "$path" && git pull )
-                if [[ -e $requirements ]]; then
-                    /opt/environments/python/comfyui/bin/pip install -r "$requirements"
-                fi
-            fi
-        else
-            printf "Downloading node: %s...\n" "${repo}"
-            git clone "${repo}" "${path}" --recursive
-            
-            if [[ -e $requirements ]]; then
-                /opt/environments/python/comfyui/bin/pip install -r "${requirements}"
-            fi
-            
-            # Special handling for ReActor node
-            if [[ "${dir}" == "comfyui-reactor-node" ]]; then
-                printf "Installing ReActor dependencies...\n"
-                ( cd "$path" && /opt/environments/python/comfyui/bin/python install.py )
-                
-                # Create models directory if it doesn't exist
-                mkdir -p "${path}/models"
-                
-                # Download required model files if they don't exist
-                if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
-                    printf "Downloading ReActor face swap model...\n"
-                    wget -q --show-progress -O "${path}/models/inswapper_128.onnx" \
-                    "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
                 fi
             fi
         fi
