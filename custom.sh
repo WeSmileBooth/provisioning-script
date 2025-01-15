@@ -132,10 +132,17 @@ function provisioning_start() {
 }
 
 function fix_cloudflared_permissions() {
-    echo "65534 65534" > /proc/sys/net/ipv4/ping_group_range
-    # Add current user to the cloudflared group
+    # Set a wider range to include both 1000 and 65534
+    echo "1000 65534" > /proc/sys/net/ipv4/ping_group_range || true
+    
+    # Multiple attempts to handle permissions
     groupadd -g 65534 cloudflared 2>/dev/null || true
-    usermod -a -G cloudflared $(whoami)
+    usermod -a -G cloudflared $(whoami) 2>/dev/null || true
+    
+    # Ensure the current user has the right permissions
+    if [ -f /proc/sys/net/ipv4/ping_group_range ]; then
+        chmod 644 /proc/sys/net/ipv4/ping_group_range || true
+    fi
 }
 
 
@@ -207,21 +214,21 @@ function provisioning_get_nodes() {
 }
 
 function provisioning_install_python_packages() {
-    if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
-        # First update pip itself
-        micromamba -n comfyui run python -m pip install --upgrade pip
+    # First update pip and install wheel
+    micromamba -n comfyui run python -m pip install --upgrade pip wheel setuptools
 
-        # Install packages one by one to better handle failures
+    # Install core dependencies first
+    micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir \
+        'toml>=0.10.2' \
+        'matplotlib>=3.7.1' \
+        'simpleeval>=0.9.12'
+
+    # Then install main packages
+    if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
         for package in "${PYTHON_PACKAGES[@]}"; do
             echo "Installing $package..."
-            micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir "$package"
+            micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir "$package" || echo "Failed to install $package"
         done
-
-        # Install additional dependencies for specific nodes
-        micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir \
-            'matplotlib>=3.7.1' \
-            'toml>=0.10.2' \
-            'simpleeval>=0.9.12'
     fi
 }
 
