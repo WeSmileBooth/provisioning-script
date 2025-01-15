@@ -178,73 +178,48 @@ function provisioning_install_python_packages() {
 }
 
 function provisioning_get_nodes() {
+    # Check if micromamba exists
+    local pip_cmd
+    if command -v micromamba &> /dev/null; then
+        pip_cmd="micromamba -n comfyui run ${PIP_INSTALL}"
+    else
+        echo "micromamba not found, using pip directly..."
+        pip_cmd="/opt/environments/python/comfyui/bin/pip install"
+    fi
+
     for repo in "${NODES[@]}"; do
         dir="${repo##*/}"
         path="/opt/ComfyUI/custom_nodes/${dir}"
         requirements="${path}/requirements.txt"
-        
-        if [[ -d "${path}" ]]; then
+        if [[ -d $path ]]; then
             if [[ ${AUTO_UPDATE,,} != "false" ]]; then
                 printf "Updating node: %s...\n" "${repo}"
-                ( cd "${path}" && git pull )
-                
-                if [[ "${dir}" == "comfyui-reactor-node" ]]; then
-                    printf "Updating ReActor dependencies...\n"
-                    ( cd "${path}" && micromamba -n comfyui run python install.py --no_download_models )
-                    
-                    # Ensure models exist even during updates
-                    mkdir -p "${path}/models/facerestore_models"
-                    
-                    if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
-                        printf "Downloading ReActor face swap model...\n"
-                        wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
-                    fi
-                    
-                    if [[ ! -f "${path}/models/facerestore_models/GFPGANv1.4.pth" ]]; then
-                        printf "Downloading GFPGANv1.4.pth...\n"
-                        wget -q --show-progress -O "${path}/models/facerestore_models/GFPGANv1.4.pth" "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
-                    fi
-
-                    for model in "GPEN-BFR-512" "GPEN-BFR-1024" "GPEN-BFR-2048"; do
-                        if [[ ! -f "${path}/models/facerestore_models/${model}.onnx" ]]; then
-                            printf "Downloading ${model}.onnx...\n"
-                            wget -q --show-progress -O "${path}/models/facerestore_models/${model}.onnx" "https://huggingface.co/MonsterMMORPG/tools/resolve/main/${model}.onnx"
-                        fi
-                    done
-
-                    if [[ ! -f "${path}/models/facerestore_models/codeformer-v0.1.0.pth" ]]; then
-                        printf "Downloading codeformer-v0.1.0.pth...\n"
-                        wget -q --show-progress -O "${path}/models/facerestore_models/codeformer-v0.1.0.pth" "https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth"
-                    fi
-                fi
-                
-                if [[ -e "${requirements}" ]]; then
-                    micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
+                ( cd "$path" && git pull )
+                if [[ -e $requirements ]]; then
+                    $pip_cmd -r "$requirements"
                 fi
             fi
         else
             printf "Downloading node: %s...\n" "${repo}"
             git clone "${repo}" "${path}" --recursive
             
-            if [[ "${dir}" == "comfyui-reactor-node" ]]; then
-                printf "Installing ReActor dependencies...\n"
-                ( cd "${path}" && micromamba -n comfyui run python install.py --no_download_models )
-                
-                mkdir -p "${path}/models/facerestore_models"
-                
-                printf "Downloading ReActor models...\n"
-                wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
-                wget -q --show-progress -O "${path}/models/facerestore_models/GFPGANv1.4.pth" "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
-                
-                for model in "GPEN-BFR-512" "GPEN-BFR-1024" "GPEN-BFR-2048"; do
-                    wget -q --show-progress -O "${path}/models/facerestore_models/${model}.onnx" "https://huggingface.co/MonsterMMORPG/tools/resolve/main/${model}.onnx"
-                done
-                
-                wget -q --show-progress -O "${path}/models/facerestore_models/codeformer-v0.1.0.pth" "https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth"
+            if [[ -e $requirements ]]; then
+                $pip_cmd -r "${requirements}"
             fi
             
-            if [[ -e "${requirements}" ]]; then
-                micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
+            # Special handling for ReActor node installation
+            if [[ "${dir}" == "comfyui-reactor-node" ]]; then
+                printf "Installing ReActor dependencies...\n"
+                ( cd "$path" && /opt/environments/python/comfyui/bin/python install.py )
+                
+                # Create models directory if it doesn't exist
+                mkdir -p "${path}/models"
+                
+                # Download required model files if they don't exist
+                if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
+                    printf "Downloading ReActor face swap model...\n"
+                    wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
+                fi
             fi
         fi
     done
