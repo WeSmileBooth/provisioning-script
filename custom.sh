@@ -19,6 +19,8 @@ PYTHON_PACKAGES=(
     "torchvision"
     "toml"
     "matplotlib"
+    "segment_anything" 
+    "simpleeval"
 )
 
 NODES=(
@@ -181,41 +183,68 @@ function provisioning_get_nodes() {
         path="/opt/ComfyUI/custom_nodes/${dir}"
         requirements="${path}/requirements.txt"
         
-        if [[ -d $path ]]; then
+        if [[ -d "${path}" ]]; then
             if [[ ${AUTO_UPDATE,,} != "false" ]]; then
                 printf "Updating node: %s...\n" "${repo}"
-                ( cd "$path" && git pull )
-                if [[ -e $requirements ]]; then
-                    micromamba -n comfyui run ${PIP_INSTALL} -r "$requirements"
-                fi
+                ( cd "${path}" && git pull )
                 
-                # Special handling for ReActor node updates
                 if [[ "${dir}" == "comfyui-reactor-node" ]]; then
                     printf "Updating ReActor dependencies...\n"
-                    ( cd "$path" && micromamba -n comfyui run python install.py --no_download_models )
+                    ( cd "${path}" && micromamba -n comfyui run python install.py --no_download_models )
+                    
+                    # Ensure models exist even during updates
+                    mkdir -p "${path}/models/facerestore_models"
+                    
+                    if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
+                        printf "Downloading ReActor face swap model...\n"
+                        wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
+                    fi
+                    
+                    if [[ ! -f "${path}/models/facerestore_models/GFPGANv1.4.pth" ]]; then
+                        printf "Downloading GFPGANv1.4.pth...\n"
+                        wget -q --show-progress -O "${path}/models/facerestore_models/GFPGANv1.4.pth" "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
+                    fi
+
+                    for model in "GPEN-BFR-512" "GPEN-BFR-1024" "GPEN-BFR-2048"; do
+                        if [[ ! -f "${path}/models/facerestore_models/${model}.onnx" ]]; then
+                            printf "Downloading ${model}.onnx...\n"
+                            wget -q --show-progress -O "${path}/models/facerestore_models/${model}.onnx" "https://huggingface.co/MonsterMMORPG/tools/resolve/main/${model}.onnx"
+                        fi
+                    done
+
+                    if [[ ! -f "${path}/models/facerestore_models/codeformer-v0.1.0.pth" ]]; then
+                        printf "Downloading codeformer-v0.1.0.pth...\n"
+                        wget -q --show-progress -O "${path}/models/facerestore_models/codeformer-v0.1.0.pth" "https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth"
+                    fi
+                fi
+                
+                if [[ -e "${requirements}" ]]; then
+                    micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
                 fi
             fi
         else
             printf "Downloading node: %s...\n" "${repo}"
             git clone "${repo}" "${path}" --recursive
             
-            if [[ -e $requirements ]]; then
-                micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
-            fi
-            
-            # Special handling for ReActor node installation
             if [[ "${dir}" == "comfyui-reactor-node" ]]; then
                 printf "Installing ReActor dependencies...\n"
-                ( cd "$path" && micromamba -n comfyui run python install.py --no_download_models )
+                ( cd "${path}" && micromamba -n comfyui run python install.py --no_download_models )
                 
-                # Create models directory if it doesn't exist
-                mkdir -p "${path}/models"
+                mkdir -p "${path}/models/facerestore_models"
                 
-                # Download required model files if they don't exist
-                if [[ ! -f "${path}/models/inswapper_128.onnx" ]]; then
-                    printf "Downloading ReActor face swap model...\n"
-                    wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
-                fi
+                printf "Downloading ReActor models...\n"
+                wget -q --show-progress -O "${path}/models/inswapper_128.onnx" "https://huggingface.co/datasets/csxmli2016/InsightFace/resolve/main/onnx/inswapper_128.onnx"
+                wget -q --show-progress -O "${path}/models/facerestore_models/GFPGANv1.4.pth" "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
+                
+                for model in "GPEN-BFR-512" "GPEN-BFR-1024" "GPEN-BFR-2048"; do
+                    wget -q --show-progress -O "${path}/models/facerestore_models/${model}.onnx" "https://huggingface.co/MonsterMMORPG/tools/resolve/main/${model}.onnx"
+                done
+                
+                wget -q --show-progress -O "${path}/models/facerestore_models/codeformer-v0.1.0.pth" "https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth"
+            fi
+            
+            if [[ -e "${requirements}" ]]; then
+                micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
             fi
         fi
     done
