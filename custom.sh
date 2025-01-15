@@ -7,25 +7,18 @@
 # Packages are installed after nodes so we can fix them...
 
 PYTHON_PACKAGES=(
-    "opencv-python==4.7.0.72"
+    "opencv-python>=4.7.0.72"
     "insightface==0.7.3"
     "onnx>=1.14.0"
-    "onnxruntime-gpu==1.16.1"
-    "numpy"
-    "matplotlib"  
-    "toml"       
-    "simpleeval"
-    "ultralytics"
-    "dlib"
-)
-
-REACTOR_MODELS=(
-    "https://github.com/Gourieff/Assets/raw/main/Yolov8_Face_Detection/face_yolov8m.pt"
-    "https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/inswapper_128.onnx"
+    "onnxruntime-gpu>=1.16.1" # Version lock removed
+    "numpy==1.26.3"           # Version specified
+    "albumentations>=1.4.16"  # New dependency
+    "segment_anything"        # New dependency
+    "ultralytics"            # New dependency
 )
 
 NODES=(
-    "https://github.com/ltdrdata/ComfyUI-Manager#comfyui-manager"
+    "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Fannovel16/comfyui_controlnet_aux"
     "https://github.com/jags111/efficiency-nodes-comfyui"
     "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes"
@@ -103,22 +96,18 @@ CONTROLNET_MODELS=(
 ### DO NOT EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU ARE DOING ###
 
 function provisioning_start() {
-    fix_cloudflared_permissions
     DISK_GB_AVAILABLE=$(($(df --output=avail -m "${WORKSPACE}" | tail -n1) / 1000))
     DISK_GB_USED=$(($(df --output=used -m "${WORKSPACE}" | tail -n1) / 1000))
     DISK_GB_ALLOCATED=$(($DISK_GB_AVAILABLE + $DISK_GB_USED))
     provisioning_print_header
-    provisioning_install_python_packages
     provisioning_get_nodes
+    provisioning_install_python_packages
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/ckpt" \
         "${CHECKPOINT_MODELS[@]}"
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/lora" \
         "${LORA_MODELS[@]}"
-    provisioning_get_models \
-        "${WORKSPACE}/models/ultralytics/bbox" \
-        "${REACTOR_MODELS[@]}"
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/controlnet" \
         "${CONTROLNET_MODELS[@]}"
@@ -139,20 +128,6 @@ function provisioning_start() {
         "${INSTANTID_MODEL[@]}"
     provisioning_get_clip_vision "${WORKSPACE}/storage/stable_diffusion/models/clip_vision"
     provisioning_print_end
-}
-
-function fix_cloudflared_permissions() {
-    # Set a wider range to include both 1000 and 65534
-    echo "1000 65534" > /proc/sys/net/ipv4/ping_group_range || true
-    
-    # Multiple attempts to handle permissions
-    groupadd -g 65534 cloudflared 2>/dev/null || true
-    usermod -a -G cloudflared $(whoami) 2>/dev/null || true
-    
-    # Ensure the current user has the right permissions
-    if [ -f /proc/sys/net/ipv4/ping_group_range ]; then
-        chmod 644 /proc/sys/net/ipv4/ping_group_range || true
-    fi
 }
 
 
@@ -182,81 +157,40 @@ function provisioning_get_clip_vision() {
     fi
 }
 
-function provisioning_handle_reactor_node() {
-    local path="$1"
-    printf "Installing Reactor dependencies...\n"
-    
-   # Create necessary directories
-    mkdir -p "${WORKSPACE}/ComfyUI/models/ultralytics/bbox"  # Changed path
-    mkdir -p "${WORKSPACE}/ComfyUI/models/sams"  # Changed path
-    mkdir -p "${path}/models/face_swapper"
-    
-    # Download required models
-    wget -qnc --content-disposition --show-progress -O "${WORKSPACE}/ComfyUI/models/ultralytics/bbox/face_yolov8m.pt" "${REACTOR_MODELS[0]}"
-    wget -qnc --content-disposition --show-progress -O "${path}/models/face_swapper/inswapper_128.onnx" "${REACTOR_MODELS[1]}"
-    # ..
-    # Install Python dependencies
-    micromamba -n comfyui run ${PIP_INSTALL} insightface==0.7.3 onnxruntime-gpu==1.16.1 ultralytics dlib
-    
-    if [[ -f "${path}/install.py" ]]; then
-        printf "Running Reactor install script...\n"
-        cd "$path"
-        micromamba -n comfyui run python install.py
-        cd - > /dev/null
-    fi
-}
-
 function provisioning_get_nodes() {
-     for repo in "${NODES[@]}"; do
-        # Handle custom folder name if specified after #
-        if [[ $repo == *"#"* ]]; then
-            dir=$(echo $repo | cut -d'#' -f2)
-            repo=$(echo $repo | cut -d'#' -f1)
-        else
-            dir="${repo##*/}"
-        fi
-        
+    for repo in "${NODES[@]}"; do
+        dir="${repo##*/}"
         path="/opt/ComfyUI/custom_nodes/${dir}"
         requirements="${path}/requirements.txt"
-        
         if [[ -d $path ]]; then
             if [[ ${AUTO_UPDATE,,} != "false" ]]; then
                 printf "Updating node: %s...\n" "${repo}"
                 ( cd "$path" && git pull )
+                if [[ -e $requirements ]]; then
+                    micromamba -n comfyui run ${PIP_INSTALL} -r "$requirements"
+                fi
             fi
         else
             printf "Downloading node: %s...\n" "${repo}"
             git clone "${repo}" "${path}" --recursive
-        fi
+            
+            if [[ -e $requirements ]]; then
+                micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
+            fi
+            
+            if [[ "${dir}" == "comfyui-reactor-node" && -f "${path}/install.py" ]]; then
+                printf "Running install.py for node: %s...\n" "${repo}"
+                ( cd "$path" && micromamba -n comfyui run python install.py )
+            fi
 
-        if [[ -e $requirements ]]; then
-            printf "Installing requirements for: %s...\n" "${dir}"
-            micromamba -n comfyui run ${PIP_INSTALL} -r "$requirements" --no-cache-dir
-        fi
-        
-        # Special handling for reactor node
-        if [[ "${dir}" == "comfyui-reactor-node" ]]; then
-            provisioning_handle_reactor_node "${path}"
+            
         fi
     done
 }
 
 function provisioning_install_python_packages() {
-    # First update pip and install wheel
-    micromamba -n comfyui run python -m pip install --upgrade pip wheel setuptools
-
-    # Install core dependencies first
-    micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir \
-        'toml>=0.10.2' \
-        'matplotlib>=3.7.1' \
-        'simpleeval>=0.9.12'
-
-    # Then install main packages
     if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
-        for package in "${PYTHON_PACKAGES[@]}"; do
-            echo "Installing $package..."
-            micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir "$package" || echo "Failed to install $package"
-        done
+        micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
     fi
 }
 
