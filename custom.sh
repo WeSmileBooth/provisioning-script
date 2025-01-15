@@ -32,6 +32,13 @@ CHECKPOINT_MODELS=(
     "https://huggingface.co/Yabo/SDXL_LoRA/resolve/main/dreamshaperXL_alpha2Xl10.safetensors"
     "https://huggingface.co/misri/realismEngineSDXL_v30VAE/resolve/main/realismEngineSDXL_v30VAE.safetensors?download=true"
 )
+# Essential models needed for ReActor to function
+ESSENTIAL_MODELS=(
+    # Inswapper model - core requirement
+    "https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/inswapper_128.onnx"
+    # Face detection model
+    "https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/detection/bbox/face_yolov8m.pt"
+)
 
 LORA_MODELS=(
     "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid_sdxl_lora.safetensors"
@@ -102,6 +109,9 @@ function provisioning_start() {
     provisioning_print_header
     provisioning_get_nodes
     provisioning_install_python_packages
+    provisioning_get_models \
+        "${WORKSPACE}/models/insightface" \
+        "${ESSENTIAL_MODELS[@]}"
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/ckpt" \
         "${CHECKPOINT_MODELS[@]}"
@@ -198,6 +208,8 @@ function provisioning_get_models() {
     if [[ -z $2 ]]; then return 1; fi
     dir="$1"
     mkdir -p "$dir"
+    mkdir -p "${WORKSPACE}/models/insightface"  # Add this line to ensure insightface directory exists
+    mkdir -p "${WORKSPACE}/models/ultralytics/bbox"  # Add this line for face detection model
     shift
     if [[ $DISK_GB_ALLOCATED -ge $DISK_GB_REQUIRED ]]; then
         arr=("$@")
