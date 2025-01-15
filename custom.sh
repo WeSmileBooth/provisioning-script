@@ -96,12 +96,13 @@ CONTROLNET_MODELS=(
 ### DO NOT EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU ARE DOING ###
 
 function provisioning_start() {
+    fix_cloudflared_permissions
     DISK_GB_AVAILABLE=$(($(df --output=avail -m "${WORKSPACE}" | tail -n1) / 1000))
     DISK_GB_USED=$(($(df --output=used -m "${WORKSPACE}" | tail -n1) / 1000))
     DISK_GB_ALLOCATED=$(($DISK_GB_AVAILABLE + $DISK_GB_USED))
     provisioning_print_header
-    provisioning_get_nodes
     provisioning_install_python_packages
+    provisioning_get_nodes
     provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/ckpt" \
         "${CHECKPOINT_MODELS[@]}"
@@ -128,6 +129,13 @@ function provisioning_start() {
         "${INSTANTID_MODEL[@]}"
     provisioning_get_clip_vision "${WORKSPACE}/storage/stable_diffusion/models/clip_vision"
     provisioning_print_end
+}
+
+function fix_cloudflared_permissions() {
+    echo "65534 65534" > /proc/sys/net/ipv4/ping_group_range
+    # Add current user to the cloudflared group
+    groupadd -g 65534 cloudflared 2>/dev/null || true
+    usermod -a -G cloudflared $(whoami)
 }
 
 
@@ -200,7 +208,20 @@ function provisioning_get_nodes() {
 
 function provisioning_install_python_packages() {
     if [ ${#PYTHON_PACKAGES[@]} -gt 0 ]; then
-        micromamba -n comfyui run ${PIP_INSTALL} ${PYTHON_PACKAGES[*]}
+        # First update pip itself
+        micromamba -n comfyui run python -m pip install --upgrade pip
+
+        # Install packages one by one to better handle failures
+        for package in "${PYTHON_PACKAGES[@]}"; do
+            echo "Installing $package..."
+            micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir "$package"
+        done
+
+        # Install additional dependencies for specific nodes
+        micromamba -n comfyui run ${PIP_INSTALL} --no-cache-dir \
+            'matplotlib>=3.7.1' \
+            'toml>=0.10.2' \
+            'simpleeval>=0.9.12'
     fi
 }
 
