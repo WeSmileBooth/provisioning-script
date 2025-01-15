@@ -12,6 +12,9 @@ PYTHON_PACKAGES=(
     "onnx>=1.14.0"
     "onnxruntime-gpu==1.16.1"
     "numpy"
+    "matplotlib"  
+    "toml"       
+    "simpleeval" 
 )
 
 NODES=(
@@ -154,33 +157,43 @@ function provisioning_get_clip_vision() {
     fi
 }
 
+function provisioning_handle_reactor_node() {
+    local path="$1"
+    printf "Installing Reactor dependencies...\n"
+    micromamba -n comfyui run ${PIP_INSTALL} insightface==0.7.3 onnxruntime-gpu==1.16.1
+    
+    if [[ -f "${path}/install.py" ]]; then
+        printf "Running Reactor install script...\n"
+        cd "$path"
+        micromamba -n comfyui run python install.py
+        cd - > /dev/null
+    fi
+}
+
 function provisioning_get_nodes() {
     for repo in "${NODES[@]}"; do
         dir="${repo##*/}"
         path="/opt/ComfyUI/custom_nodes/${dir}"
         requirements="${path}/requirements.txt"
+        
         if [[ -d $path ]]; then
             if [[ ${AUTO_UPDATE,,} != "false" ]]; then
                 printf "Updating node: %s...\n" "${repo}"
                 ( cd "$path" && git pull )
-                if [[ -e $requirements ]]; then
-                    micromamba -n comfyui run ${PIP_INSTALL} -r "$requirements"
-                fi
             fi
         else
             printf "Downloading node: %s...\n" "${repo}"
             git clone "${repo}" "${path}" --recursive
-            
-            if [[ -e $requirements ]]; then
-                micromamba -n comfyui run ${PIP_INSTALL} -r "${requirements}"
-            fi
-            
-            if [[ "${dir}" == "comfyui-reactor-node" && -f "${path}/install.py" ]]; then
-                printf "Running install.py for node: %s...\n" "${repo}"
-                ( cd "$path" && micromamba -n comfyui run python install.py )
-            fi
+        fi
 
-            
+        if [[ -e $requirements ]]; then
+            printf "Installing requirements for: %s...\n" "${dir}"
+            micromamba -n comfyui run ${PIP_INSTALL} -r "$requirements" --no-cache-dir
+        fi
+        
+        # Special handling for reactor node
+        if [[ "${dir}" == "comfyui-reactor-node" ]]; then
+            provisioning_handle_reactor_node "${path}"
         fi
     done
 }
