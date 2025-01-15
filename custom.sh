@@ -14,11 +14,18 @@ PYTHON_PACKAGES=(
     "numpy"
     "matplotlib"  
     "toml"       
-    "simpleeval" 
+    "simpleeval"
+    "ultralytics"
+    "dlib"
+)
+
+REACTOR_MODELS=(
+    "https://github.com/Gourieff/Assets/raw/main/Yolov8_Face_Detection/face_yolov8m.pt"
+    "https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/inswapper_128.onnx"
 )
 
 NODES=(
-    "https://github.com/ltdrdata/ComfyUI-Manager"
+    "https://github.com/ltdrdata/ComfyUI-Manager#comfyui-manager"
     "https://github.com/Fannovel16/comfyui_controlnet_aux"
     "https://github.com/jags111/efficiency-nodes-comfyui"
     "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes"
@@ -110,6 +117,9 @@ function provisioning_start() {
         "${WORKSPACE}/storage/stable_diffusion/models/lora" \
         "${LORA_MODELS[@]}"
     provisioning_get_models \
+        "${WORKSPACE}/models/ultralytics/bbox" \
+        "${REACTOR_MODELS[@]}"
+    provisioning_get_models \
         "${WORKSPACE}/storage/stable_diffusion/models/controlnet" \
         "${CONTROLNET_MODELS[@]}"
     provisioning_get_models \
@@ -175,7 +185,18 @@ function provisioning_get_clip_vision() {
 function provisioning_handle_reactor_node() {
     local path="$1"
     printf "Installing Reactor dependencies...\n"
-    micromamba -n comfyui run ${PIP_INSTALL} insightface==0.7.3 onnxruntime-gpu==1.16.1
+    
+   # Create necessary directories
+    mkdir -p "${WORKSPACE}/ComfyUI/models/ultralytics/bbox"  # Changed path
+    mkdir -p "${WORKSPACE}/ComfyUI/models/sams"  # Changed path
+    mkdir -p "${path}/models/face_swapper"
+    
+    # Download required models
+    wget -qnc --content-disposition --show-progress -O "${WORKSPACE}/ComfyUI/models/ultralytics/bbox/face_yolov8m.pt" "${REACTOR_MODELS[0]}"
+    wget -qnc --content-disposition --show-progress -O "${path}/models/face_swapper/inswapper_128.onnx" "${REACTOR_MODELS[1]}"
+    # ..
+    # Install Python dependencies
+    micromamba -n comfyui run ${PIP_INSTALL} insightface==0.7.3 onnxruntime-gpu==1.16.1 ultralytics dlib
     
     if [[ -f "${path}/install.py" ]]; then
         printf "Running Reactor install script...\n"
@@ -186,8 +207,15 @@ function provisioning_handle_reactor_node() {
 }
 
 function provisioning_get_nodes() {
-    for repo in "${NODES[@]}"; do
-        dir="${repo##*/}"
+     for repo in "${NODES[@]}"; do
+        # Handle custom folder name if specified after #
+        if [[ $repo == *"#"* ]]; then
+            dir=$(echo $repo | cut -d'#' -f2)
+            repo=$(echo $repo | cut -d'#' -f1)
+        else
+            dir="${repo##*/}"
+        fi
+        
         path="/opt/ComfyUI/custom_nodes/${dir}"
         requirements="${path}/requirements.txt"
         
